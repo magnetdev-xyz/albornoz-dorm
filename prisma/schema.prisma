@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id          Int      @id @default(1)
+  dormName    String   @default("خوابگاه البرز")
+  logo        String   @default("")
+  updatedAt   DateTime @updatedAt
+}
+
+model Floor {
+  id        String   @id @default(uuid())
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rooms     Room[]
+}
+
+model RoomType {
+  id        String   @id @default(uuid())
+  name      String
+  capacity  Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rooms     Room[]
+  tariffs   Tariff[]
+}
+
+model Tariff {
+  id         String   @id @default(uuid())
+  roomTypeId String
+  stayType   String
+  price      Int
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id          String   @id @default(uuid())
+  number      String
+  floorId     String
+  roomTypeId  String
+  description String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  floor       Floor    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomType    RoomType @relation(fields: [roomTypeId], references: [id])
+  beds        Bed[]
+}
+
+model Bed {
+  id         String      @id @default(uuid())
+  number     String
+  roomId     String
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  room       Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  residences Residence[]
+}
+
+model Resident {
+  id           String      @id @default(uuid())
+  firstName    String
+  lastName     String
+  fatherName   String
+  nationalCode String      @unique
+  phone        String
+  photo        String      @default("")
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  residences   Residence[]
+  payments     Payment[]
+  documents    Document[]
+}
+
+model Document {
+  id            String   @id @default(uuid())
+  residentId    String   @unique
+  nationalCard  Boolean  @default(false)
+  birthCert     Boolean  @default(false)
+  driverLicense Boolean  @default(false)
+  militaryCard  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+}
+
+model Residence {
+  id              String      @id @default(uuid())
+  residentId      String
+  bedId           String
+  stayType        String
+  startDate       String
+  endDate         String
+  contractAmount  Int
+  isActive        Boolean     @default(true)
+  isCheckedOut    Boolean     @default(false)
+  checkoutDate    String?
+  description     String      @default("")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  resident        Resident    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  bed             Bed         @relation(fields: [bedId], references: [id])
+  extensions      Extension[]
+
+  @@index([residentId, isActive])
+}
+
+model Extension {
+  id          String    @id @default(uuid())
+  residenceId String
+  days        Int
+  newEndDate  String
+  description String    @default("")
+  createdAt   DateTime  @default(now())
+  residence   Residence @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  residentId     String
+  amount         Int
+  method         String
+  trackingNumber String   @default("")
+  description    String   @default("")
+  receiptPhotos  String   @default("[]")
+  paymentDate    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  resident       Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String   @default("")
+  details   String   @default("")
+  createdAt DateTime @default(now())
+}
